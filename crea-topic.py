@@ -5,10 +5,11 @@ from crea_topic_lib import *
 import sys
 import getopt
 import configparser
+import subprocess
 #
 argv = sys.argv[1:]
 # per test, da commentare per runtime su SO
-argv = '-e LOCAL -p 2 -r 2 -i LDH -s 604800000 -t LDH_asas_sasa_rere_DEFAULT'.split()
+#argv = '-e LOCAL -p 2 -r 2 -i LDH -s 604800000 -t LDH_asas_sasa_rere_DEFAULT'.split()
 #
 
 #inserire gestione riciclo errore file in base alla dim. > 1000000
@@ -157,6 +158,8 @@ if ce==0:
 
 
 ZOOKEEPER = config.get(INFRASTRUCTURE, ENVIRONMENT+'_ZOOKEEPER')
+if ENVIRONMENT == 'LOCAL':
+   BOOTSTRAP = config.get(INFRASTRUCTURE, ENVIRONMENT+'_BOOTSTRAP')
 
 if ZOOKEEPER.strip() == '':
     write_log(" | ERROR | Ambiente "+ENVIRONMENT+" non disponibile su infrastruttura "+INFRASTRUCTURE+".",LOGNAME_curr)
@@ -175,21 +178,34 @@ if FLAG_RETENTION == 0 or INFRASTRUCTURE == "LDH":
 if FLAG_PARTITIONS == 0:
    PARTITIONS = config.get(INFRASTRUCTURE, ENVIRONMENT+'_PARTITIONS')
 
-#Creazione topic
-
+######################################################################
+######################################################################
+#                C R E A Z I O N E   T O P I C
+######################################################################
+######################################################################
+#
 #
 SHELL_CRE_TOPIC = config.get('COMMON', 'SHELL_CRE_TOPIC')
-COM_CRE_TOPIC = SHELL_CRE_TOPIC+" --zookeeper "+ZOOKEEPER+ \
+if ENVIRONMENT == 'LOCAL':
+    zook = "--"+BOOTSTRAP
+else:
+    zook ="--zookeeper"
+
+COM_CRE_TOPIC = SHELL_CRE_TOPIC+" "+zook+" "+ZOOKEEPER+ \
               " --create --topic "+TOPIC_NAME+ \
               " --partitions "+str(PARTITIONS)+ \
               " --replication-factor "+str(REPLICATION_FACTOR)+ \
               " --config retention.ms="+str(RETENTION_MS)
 
 write_log(" | INFO | "+COM_CRE_TOPIC,LOGNAME_curr)
-# COM_CRE_TOPIC da eseguire con comando lib os.system() oppure subprocess.run 
+# COM_CRE_TOPIC da eseguire con comando lib os.system() oppure subprocess.run
 
+parameter_value = subprocess.run(COM_CRE_TOPIC, shell=True, check=True, stdout=subprocess.PIPE,universal_newlines=True)
+Cre_topic_out = parameter_value.stdout.strip()
 
-write_log(" | INFO | Fine processo di creazione topic Kafka...",LOGNAME_curr)
+write_log(" | INFO | esito creazione Topic: "+Cre_topic_out,LOGNAME_curr)
+
+write_log(" | INFO | Fine processo di creazione Topic Kafka...",LOGNAME_curr)
 
 
 
